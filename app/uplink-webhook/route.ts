@@ -7,12 +7,16 @@ export async function POST(request: Request) {
     const payload = bodyObj.uplink_message.decoded_payload
     console.log("📡 Datos del cuerpo:", payload)
     const supabase = await createClient();
-    await supabase.from("quality_measure").insert(
-        {
+    const {data, error} = await supabase.from("quality_measure").insert(
+        [{
             latitude: payload.lat,
             longitud: payload.lon,
             quality: "100"
-        }
+        }]
     );
+    if (error) {
+        console.error('❌ Error al insertar en Supabase:', error);
+    }
+    console.log('✅ Datos insertados en Supabase:', data)
     return NextResponse.json({ success: true }, { status: 200 })
 }
