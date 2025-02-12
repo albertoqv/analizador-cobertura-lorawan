@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     const payload = bodyObj.uplink_message.decoded_payload
     console.log("📡 Datos del cuerpo:", payload)
     const supabase = await createClient();
-    const { data: notes } = await supabase.from("quality_measure").insert(
+    await supabase.from("quality_measure").insert(
         {
             latitude: payload.lat,
             longitud: payload.lon,
