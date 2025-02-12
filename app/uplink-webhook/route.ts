@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const {data, error} = await supabase.from("quality_measure").insert(
         [{
             latitude: payload.lat,
-            longitud: payload.lon,
+            longitude: payload.lon,
             quality: "100"
         }]
     );
