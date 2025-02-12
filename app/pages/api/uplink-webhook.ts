@@ -1,10 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método no permitido' });
-  }
-
   try {
     const uplinkData = req.body; // Recibe el JSON enviado por TTN
     console.log("📡 Uplink recibido:", JSON.stringify(uplinkData, null, 2));
