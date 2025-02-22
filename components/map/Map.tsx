@@ -64,7 +64,7 @@ const MapboxMap = () => {
         onMove={(evt) => setViewState(evt.viewState)}
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         mapStyle="mapbox://styles/petherem/cl2hdvc6r003114n2jgmmdr24"
-        style={{ width: "100%", height: "100%", position: "absolute" }}
+        style={{ width: "100%", height: "100%", position: "relative", zIndex: 0}}
       />
 
       {/* Capa de hexágonos sincronizada con Mapbox */}
