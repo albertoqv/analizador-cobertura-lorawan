@@ -8,20 +8,22 @@ const MapboxMap = dynamic(() => import("../components/map/Map"), { ssr: false })
 
 const Home = () => {
   const [authenticated, setAuthenticated] = useState(false);
+  const [loaded, setLoaded] = useState(false); // 🔹 Nuevo estado para forzar re-render
   const router = useRouter();
 
   useEffect(() => {
     const password = sessionStorage.getItem("password");
-    if (password !== "Xx9$gT!7mP@vQ3zK#f") { // Asegúrate de que coincida con la contraseña de login.tsx
+    if (password !== "Xx9$gT!7mP@vQ3zK#f") {
       router.push("/login");
     } else {
       setAuthenticated(true);
+      setTimeout(() => setLoaded(true), 100); // 🔹 Pequeño delay para evitar problemas de superposición
     }
   }, []);
 
-  if (!authenticated) return null; // No renderiza el mapa hasta verificar autenticación
+  if (!authenticated) return <div className="absolute inset-0 bg-black"></div>;
 
-  return <MapboxMap />;
+  return loaded ? <MapboxMap /> : null; // 🔹 Se asegura de que renderice bien
 };
 
 export default Home;
