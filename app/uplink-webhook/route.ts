@@ -19,7 +19,7 @@ export async function POST(request: Request) {
         }
 
         // Buscar el gateway con ID "enlace-alberto"
-        const gatewayData = rxMetadata.find(gw => gw.gateway_id === "enlace-alberto");
+        const gatewayData = rxMetadata.find(gw => gw.gateway_ids.gateway_id === "enlace-alberto");
 
         if (!gatewayData) {
             console.error("❌ No se encontró el gateway 'enlace-alberto'");
