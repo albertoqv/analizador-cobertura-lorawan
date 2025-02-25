@@ -7,8 +7,8 @@ export async function GET() {
     // 🔹 Consultar los datos desde Supabase
   const supabase = await createClient()
   const { data, error } = await supabase
-    .from("quality_measure")
-    .select("latitude, longitude, quality");
+    .from("geo_points")
+    .select("latitude, longitude, best_quality");
 
   if (error) {
     console.error("❌ Error obteniendo datos de Supabase:", error);
@@ -20,7 +20,7 @@ export async function GET() {
     .filter((item) => item.latitude && item.longitude) // 🔹 Filtrar valores nulos
     .map((item) => ({
       COORDINATES: [item.longitude, item.latitude], // 🔹 Formato compatible con HexagonLayer
-      SCORE: (item.quality ? parseInt(item.quality, 10) || 0 : 0), // 🔹 Convertir quality a número
+      SCORE: (item.best_quality ? parseInt(item.best_quality, 10) || 0 : 0), // 🔹 Convertir quality a número
     }));
 
   return NextResponse.json(formattedData);
