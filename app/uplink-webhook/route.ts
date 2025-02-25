@@ -12,7 +12,6 @@ export async function POST(request: Request) {
 
         console.log("📡 Datos recibidos:", payload);
 
-        // Verificar si rxMetadata es un array antes de usar .find()
         if (!Array.isArray(rxMetadata)) {
             console.error("❌ Error: rxMetadata no es un array o es undefined.");
             return NextResponse.json({ error: "rxMetadata inválido" }, { status: 400 });
@@ -30,9 +29,23 @@ export async function POST(request: Request) {
         const rssi = typeof gatewayData.rssi === "number" ? gatewayData.rssi : -120;
         const snr = typeof gatewayData.snr === "number" ? gatewayData.snr : -10;
 
-        // Calcular calidad (quality) con -30 dBm como referencia
-        let quality = Math.max(0, 100 + (rssi + 120) / 2 + snr * 5);
-        quality = Math.min(100, parseFloat(quality.toFixed(2))); // Límite máximo de 100
+        // Mapear RSSI a un rango de calidad basado en la imagen
+        let quality = 0;
+        if (rssi > -100) {
+            quality = 100;
+        } else if (rssi > -105) {
+            quality = 80 + ((rssi + 105) / 5) * 20;
+        } else if (rssi > -110) {
+            quality = 60 + ((rssi + 110) / 5) * 20;
+        } else if (rssi > -115) {
+            quality = 40 + ((rssi + 115) / 5) * 20;
+        } else if (rssi > -120) {
+            quality = 20 + ((rssi + 120) / 5) * 20;
+        } else {
+            quality = 0;
+        }
+
+        quality = parseFloat(quality.toFixed(2));
 
         console.log(`📶 RSSI: ${rssi} dBm | 🔊 SNR: ${snr} dB | 🏆 Quality: ${quality}`);
 
