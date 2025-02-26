@@ -53,7 +53,7 @@ const MapboxMap = () => {
       if (points.length === 0) return 0;
       return points[0].SCORE;
     },
-    elevationScale: 0.5,
+    elevationScale: 1,
   });
 
   return (
