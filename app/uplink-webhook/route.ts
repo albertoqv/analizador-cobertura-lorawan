@@ -1,3 +1,4 @@
+// app/uplink-webhook/route.ts
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
@@ -6,7 +7,7 @@ export async function POST(request: Request) {
         const bodyStr = await request.text();
         const bodyObj = JSON.parse(bodyStr);
 
-        // Extraer decoded_payload y rx_metadata
+        // 1. Extraer decoded_payload y rx_metadata
         const payload = bodyObj.uplink_message.decoded_payload;
         const rxMetadata = bodyObj.uplink_message.rx_metadata;
 
@@ -17,31 +18,36 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "rxMetadata inválido" }, { status: 400 });
         }
 
-        // Conectar con Supabase
+        // 2. Conectar con Supabase
         const supabase = await createClient();
 
-        // Insertar el punto geográfico y obtener su ID
-        const { data: pointData, error: pointError } = await supabase.from("geo_points").insert([
-            {
-                latitude: payload.lat,
-                longitude: payload.lon
-            }
-        ]).select("id").single();
+        // 3. Insertar el punto geográfico con best_quality a null
+        const { data: pointData, error: pointError } = await supabase
+            .from("geo_points")
+            .insert([
+                {
+                    latitude: payload.lat,
+                    longitude: payload.lon,
+                    best_quality: null
+                }
+            ])
+            .select("id")
+            .single();
 
         if (pointError) {
-            console.error('❌ Error al insertar el punto geográfico en Supabase:', pointError);
-            return NextResponse.json({ error: "Error en Supabase" }, { status: 500 });
+            console.error('❌ Error al insertar el punto geográfico:', pointError);
+            return NextResponse.json({ error: "Error al insertar en geo_points" }, { status: 500 });
         }
 
         const pointId = pointData.id;
 
-        // Procesar todos los gateways presentes en rx_metadata
+        // 4. Construir arreglo de mediciones
         const measurements = rxMetadata.map(gatewayData => {
             const gatewayId = gatewayData.gateway_ids?.gateway_id || "desconocido";
             const rssi = typeof gatewayData.rssi === "number" ? gatewayData.rssi : -120;
             const snr = typeof gatewayData.snr === "number" ? gatewayData.snr : -10;
 
-            // Calcular calidad basada en RSSI
+            // Cálculo de calidad (idéntico al que tenías)
             let quality = 0;
             if (rssi > -100) {
                 quality = 100;
@@ -66,18 +72,46 @@ export async function POST(request: Request) {
             };
         });
 
-        console.log("📡 Datos a insertar:", measurements);
+        console.log("📡 Datos a insertar en quality_measurements:", measurements);
 
-        // Insertar las mediciones de cobertura asociadas al punto geográfico
-        const { data, error } = await supabase.from("quality_measurements").insert(measurements);
+        // 5. Insertar las mediciones en la tabla quality_measurements
+        //    (usamos .select("*") para poder recibir los IDs de cada fila)
+        const { data: insertedMeasurements, error: measurementError } = await supabase
+            .from("quality_measurements")
+            .insert(measurements)
+            .select("*");
 
-        if (error) {
-            console.error('❌ Error al insertar en Supabase:', error);
-            return NextResponse.json({ error: "Error en Supabase" }, { status: 500 });
+        if (measurementError) {
+            console.error('❌ Error al insertar measurements:', measurementError);
+            return NextResponse.json({ error: "Error en quality_measurements" }, { status: 500 });
         }
 
-        console.log('✅ Datos insertados en Supabase:', data);
-        return NextResponse.json({ success: true, inserted: measurements.length }, { status: 200 });
+        // 6. Encontrar la medición con mayor "quality"
+        let bestMeasurement = insertedMeasurements[0];
+        for (const meas of insertedMeasurements) {
+            if (meas.quality > bestMeasurement.quality) {
+                bestMeasurement = meas;
+            }
+        }
+
+        // 7. Actualizar el geo_point con el ID del measurement que tenga la mejor quality
+        const { error: updateError } = await supabase
+            .from("geo_points")
+            .update({ best_quality: bestMeasurement.id })
+            .eq("id", pointId);
+
+        if (updateError) {
+            console.error('❌ Error al actualizar best_quality en geo_points:', updateError);
+            return NextResponse.json({ error: "Error actualizando best_quality" }, { status: 500 });
+        }
+
+        console.log('✅ Punto y mediciones insertados correctamente.');
+        return NextResponse.json({
+            success: true,
+            point_id: pointId,
+            best_measurement_id: bestMeasurement.id
+        }, { status: 200 });
+
     } catch (error) {
         console.error("❌ Error procesando la solicitud:", error);
         return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
