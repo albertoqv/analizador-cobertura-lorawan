@@ -53,7 +53,7 @@ export async function GET() {
 
       // Construimos la estructura necesaria para tu capa HexagonLayer, etc.
       formattedData.push({
-        COORDINATES: [point.longitude, point.latitude],
+        COORDINATES: [point.latitude, point.longitude],
         SCORE: score,
       });
     }
