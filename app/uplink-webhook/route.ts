@@ -61,9 +61,13 @@ export async function POST(request: Request) {
     const bodyObj = JSON.parse(bodyStr);
 
     // Extraer IDs de la aplicación y dispositivo
-    const deviceId = bodyObj?.end_device_ids?.device_id || "desconocido";
-    const appId = bodyObj?.end_device_ids?.application_ids?.application_id || "app-desconocida";
+   // Extraer IDs de la aplicación y dispositivo
+const deviceId = bodyObj?.end_device_ids?.device_id || "desconocido";
+const appId = bodyObj?.end_device_ids?.application_ids?.application_id || "app-desconocida";
 
+console.log("🔍 Verificando IDs:");
+console.log("   📡 deviceId:", deviceId);
+console.log("   🏢 appId:", appId);
     console.log("📡 Uplink recibido desde TTN para dispositivo:", deviceId);
 
     // Extraer el payload del uplink
