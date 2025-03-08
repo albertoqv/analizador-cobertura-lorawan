@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
-// 🔹 Fijar manualmente los valores de `appId` y `deviceId`
+// 🔹 Establecer valores por defecto para appId y deviceId
 const appId = "tfg-analizador";  
 const deviceId = "tfg-analizador-alberto";  
 
