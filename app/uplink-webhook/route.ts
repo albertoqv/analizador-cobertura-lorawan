@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     });
 
     if (filteredMetadata.length === 0) {
-      console.log("ℹ️ Solo se recibió el gateway 'enlace-alberto'. No se insertarán mediciones y best_quality se mantendrá en null.");
+      console.log("ℹ️ Solo se recibió el gateway 'enlace-alberto'. Best_quality se mantendrá en null.");
       // Programar downlink indicando "recibido" (o se podría ajustar el mensaje según la lógica de la aplicación)
       await scheduleDownlink("recibido");
       return NextResponse.json({
