@@ -1,43 +1,30 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
-// Valores fijos para la aplicación y el dispositivo en TTN
 const appId = "tfg-analizador";  
 const deviceId = "tfg-analizador-alberto";  
 
-// Función para enviar un DOWNLINK a TTN
 async function scheduleDownlink(payloadStr: string) {
   try {
     console.log("📤 Intentando programar downlink...");
-
-    // Convertir el mensaje a Base64 (TTN requiere base64 en downlinks)
     const payloadB64 = Buffer.from(payloadStr, 'utf8').toString('base64');
-
-    // Construir el body JSON del downlink
     const downlinkBody = {
       downlinks: [
         {
-          f_port: 3,  // Se utiliza el puerto 3 para el downlink
+          f_port: 3,
           frm_payload: payloadB64,
           priority: "NORMAL"
         }
       ]
     };
-
-    // Definir la URL de TTN para programar el downlink
     const url = `https://eu1.cloud.thethings.network/api/v3/as/applications/${appId}/devices/${deviceId}/down/push`;
-
-    // Leer la API Key de TTN desde las variables de entorno en Vercel
     const TTN_API_KEY = process.env.TTN_API_KEY;
     if (!TTN_API_KEY) {
       console.error("❌ Falta la variable de entorno TTN_API_KEY");
       return;
     }
-
     console.log("🔑 TTN API Key detectada.");
     console.log("📝 Payload que se enviará:", JSON.stringify(downlinkBody, null, 2));
-
-    // Enviar la petición a TTN
     const resp = await fetch(url, {
       method: 'POST',
       headers: {
@@ -46,7 +33,6 @@ async function scheduleDownlink(payloadStr: string) {
       },
       body: JSON.stringify(downlinkBody)
     });
-
     if (!resp.ok) {
       const errText = await resp.text();
       console.error('❌ Error al programar downlink en TTN:', resp.status, errText);
@@ -62,11 +48,8 @@ export async function POST(request: Request) {
   try {
     const bodyStr = await request.text();
     const bodyObj = JSON.parse(bodyStr);
-
-    // 1. Extraer decoded_payload y rx_metadata
     const payload = bodyObj.uplink_message.decoded_payload;
     const rxMetadata = bodyObj.uplink_message.rx_metadata;
-
     console.log("📡 Datos recibidos:", payload);
 
     if (!Array.isArray(rxMetadata) || rxMetadata.length === 0) {
@@ -74,10 +57,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "rxMetadata inválido" }, { status: 400 });
     }
 
-    // 2. Conectar con Supabase
+    // Conectar con Supabase
     const supabase = await createClient();
 
-    // 3. Insertar el punto geográfico con best_quality a null
+    // Insertar el punto geográfico con best_quality a null
     const { data: pointData, error: pointError } = await supabase
       .from("geo_points")
       .insert([
@@ -97,13 +80,28 @@ export async function POST(request: Request) {
 
     const pointId = pointData.id;
 
-    // 4. Construir arreglo de mediciones
-    const measurements = rxMetadata.map(gatewayData => {
+    // Filtrar para descartar el gateway "enlace-alberto"
+    const filteredMetadata = rxMetadata.filter(gatewayData => {
+      const gatewayId = gatewayData.gateway_ids?.gateway_id || "desconocido";
+      return gatewayId !== "enlace-alberto";
+    });
+
+    if (filteredMetadata.length === 0) {
+      console.log("ℹ️ Solo se recibió el gateway 'enlace-alberto'. No se insertarán mediciones y best_quality se mantendrá en null.");
+      // Programar downlink indicando "recibido" (o se podría ajustar el mensaje según la lógica de la aplicación)
+      await scheduleDownlink("recibido");
+      return NextResponse.json({
+        success: true,
+        point_id: pointId,
+        best_measurement_id: null
+      }, { status: 200 });
+    }
+
+    // Construir arreglo de mediciones con los gateways restantes
+    const measurements = filteredMetadata.map(gatewayData => {
       const gatewayId = gatewayData.gateway_ids?.gateway_id || "desconocido";
       const rssi = typeof gatewayData.rssi === "number" ? gatewayData.rssi : -120;
       const snr = typeof gatewayData.snr === "number" ? gatewayData.snr : -10;
-
-      // Cálculo de calidad (idéntico al que tenías)
       let quality = 0;
       if (rssi > -100) {
         quality = 100;
@@ -118,7 +116,6 @@ export async function POST(request: Request) {
       } else {
         quality = 0;
       }
-
       return {
         point_id: pointId,
         gateway_id: gatewayId,
@@ -130,7 +127,7 @@ export async function POST(request: Request) {
 
     console.log("📡 Datos a insertar en quality_measurements:", measurements);
 
-    // 5. Insertar las mediciones en la tabla quality_measurements
+    // Insertar las mediciones en la tabla quality_measurements
     const { data: insertedMeasurements, error: measurementError } = await supabase
       .from("quality_measurements")
       .insert(measurements)
@@ -141,7 +138,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Error en quality_measurements" }, { status: 500 });
     }
 
-    // 6. Encontrar la medición con mayor "quality"
+    // Encontrar la medición con mayor "quality"
     let bestMeasurement = insertedMeasurements[0];
     for (const meas of insertedMeasurements) {
       if (meas.quality > bestMeasurement.quality) {
@@ -149,7 +146,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 7. Actualizar el geo_point con el ID del measurement que tenga la mejor quality
+    // Actualizar el geo_point con el ID de la mejor medición
     const { error: updateError } = await supabase
       .from("geo_points")
       .update({ best_quality: bestMeasurement.id })
@@ -162,7 +159,7 @@ export async function POST(request: Request) {
 
     console.log('✅ Punto y mediciones insertados correctamente.');
 
-    // 8. Enviar downlink con "recibido"
+    // Enviar downlink con "recibido"
     console.log("🚀 Programando downlink con mensaje 'recibido'...");
     await scheduleDownlink("recibido");
 
