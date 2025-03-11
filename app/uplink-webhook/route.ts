@@ -86,10 +86,11 @@ export async function POST(request: Request) {
       return gatewayId !== "enlace-alberto";
     });
 
+    // Si no quedan gateways válidos, enviamos mensaje con calidad 0 y mantenemos best_quality en null
     if (filteredMetadata.length === 0) {
       console.log("ℹ️ Solo se recibió el gateway 'enlace-alberto'. Best_quality se mantendrá en null.");
-      // Programar downlink indicando "recibido" (o se podría ajustar el mensaje según la lógica de la aplicación)
-      await scheduleDownlink("recibido");
+      const downlinkMsg = `Medida en ${payload.lat}, ${payload.lon} con calidad 0 recibida con éxito`;
+      await scheduleDownlink(downlinkMsg);
       return NextResponse.json({
         success: true,
         point_id: pointId,
@@ -159,9 +160,10 @@ export async function POST(request: Request) {
 
     console.log('✅ Punto y mediciones insertados correctamente.');
 
-    // Enviar downlink con "recibido"
-    console.log("🚀 Programando downlink con mensaje 'recibido'...");
-    await scheduleDownlink("recibido");
+    // Construir mensaje de downlink personalizado
+    const downlinkMsg = `Medida en ${payload.lat}, ${payload.lon} con calidad del${bestMeasurement.quality}% recibida con éxito`;
+    console.log("🚀 Programando downlink con mensaje:", downlinkMsg);
+    await scheduleDownlink(downlinkMsg);
 
     return NextResponse.json({
       success: true,
