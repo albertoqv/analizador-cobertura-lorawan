@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     // Si no quedan gateways válidos, enviamos mensaje con calidad 0 y mantenemos best_quality en null
     if (filteredMetadata.length === 0) {
       console.log("ℹ️ Solo se recibió el gateway 'enlace-alberto'. Best_quality se mantendrá en null.");
-      const downlinkMsg = `Medida en ${payload.lat}, ${payload.lon} con calidad 0 recibida con éxito`;
+      const downlinkMsg = `Medida en ${payload.lat}, ${payload.lon} con calidad 0% recibida con correctamente`;
       await scheduleDownlink(downlinkMsg);
       return NextResponse.json({
         success: true,
@@ -161,7 +161,7 @@ export async function POST(request: Request) {
     console.log('✅ Punto y mediciones insertados correctamente.');
 
     // Construir mensaje de downlink personalizado
-    const downlinkMsg = `Medida en ${payload.lat}, ${payload.lon} con calidad del${bestMeasurement.quality}% recibida con éxito`;
+    const downlinkMsg = `Medida en ${payload.lat}, ${payload.lon} con calidad del${bestMeasurement.quality}% recibida correctamente`;
     console.log("🚀 Programando downlink con mensaje:", downlinkMsg);
     await scheduleDownlink(downlinkMsg);
 
