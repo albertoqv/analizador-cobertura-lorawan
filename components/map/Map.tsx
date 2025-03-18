@@ -83,8 +83,7 @@ const MapboxMap: React.FC = () => {
     return `${day}-${month}-${year} -- ${hours}:${minutes}:${seconds}`;
   };
 
-
-
+ 
   const hexagonLayer = new HexagonLayer<PointData>({
     id: "hexagon-layer",
     data: API_URL,
@@ -102,7 +101,7 @@ const MapboxMap: React.FC = () => {
     ],
     getElevationValue: (points) => points[0]?.SCORE || 0,
     elevationScale: 0.5,
-    onClick: (info: any): boolean => {
+    onClick: (info: any): boolean => { 
       if (info && info.object) {
         const cell = info.object;
         const pointIds = cell.points.map((pt: PointData) => pt.ID).filter(Boolean);
