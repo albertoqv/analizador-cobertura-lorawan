@@ -13,6 +13,20 @@ mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const API_URL = "/api/quality_points";
 
+// Definimos interfaces para los datos
+interface PointMeasurement {
+  id: number;
+  gateway_id: string;
+  quality: number;
+  created_at: string;
+}
+
+interface PointData {
+  ID: number;
+  COORDINATES: [number, number];
+  SCORE: number;
+}
+
 const MapboxMap: React.FC = () => {
   const initialViewState: ViewState = {
     longitude: -4.78,
@@ -24,12 +38,12 @@ const MapboxMap: React.FC = () => {
   };
 
   const [viewState, setViewState] = useState<ViewState>(initialViewState);
-  const [selectedMeasurements, setSelectedMeasurements] = useState<any[] | null>(null);
+  const [selectedMeasurements, setSelectedMeasurements] = useState<PointMeasurement[] | null>(null);
   const [clickedPointIds, setClickedPointIds] = useState<number[] | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Función para obtener las mediciones completas de un punto
-  async function fetchPointMeasurements(pointId: number): Promise<any[] | null> {
+  async function fetchPointMeasurements(pointId: number): Promise<PointMeasurement[] | null> {
     try {
       const response = await fetch(`${API_URL}/${pointId}`);
       if (!response.ok) {
@@ -50,7 +64,7 @@ const MapboxMap: React.FC = () => {
 
       setErrorMessage(null);
       return data;
-    } catch (error) {
+    } catch (_error) {
       setErrorMessage("Hubo un error al cargar las mediciones");
       return null;
     }
@@ -69,7 +83,13 @@ const MapboxMap: React.FC = () => {
     return `${day}-${month}-${year} -- ${hours}:${minutes}:${seconds}`;
   };
 
-  const hexagonLayer = new HexagonLayer<any>({
+  interface HexagonInfo {
+    object?: {
+      points: PointData[];
+    };
+  }
+
+  const hexagonLayer = new HexagonLayer<PointData>({
     id: "hexagon-layer",
     data: API_URL,
     getPosition: (d) => d.COORDINATES,
@@ -88,10 +108,10 @@ const MapboxMap: React.FC = () => {
     elevationScale: 0.5,
     onClick: (info: any, event: any): boolean => {
       if (info && info.object) {
-        const cell = info.object as { points: any[] };
-        const pointIds = cell.points.map((pt) => pt.ID).filter(Boolean);
-
-        if (pointIds.length > 0) {
+        const cell = info.object;
+        const pointIds = cell.points.map((pt: PointData) => pt.ID).filter(Boolean);
+        
+        if (pointIds.length > 0)  {
           fetchPointMeasurements(pointIds[0])
             .then((measurements) => {
               if (measurements) {
@@ -178,7 +198,7 @@ const MapboxMap: React.FC = () => {
               <strong>Fecha:</strong> {formatDate(selectedMeasurements[0].created_at)} <br />
               <strong>Conexiones:</strong>
               <ul>
-                {selectedMeasurements.map((m: any) => (
+                {selectedMeasurements.map((m: PointMeasurement) => (
                   <li
                     key={m.id}
                     style={{
