@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-
+import { NextRequest } from "next/server"
 export async function GET(
-  request: Request,
+  request: NextRequest,
   context: { params: { pointId: string } }
 ) {
   const supabase = await createClient();
