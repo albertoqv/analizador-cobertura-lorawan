@@ -101,7 +101,7 @@ const MapboxMap: React.FC = () => {
     ],
     getElevationValue: (points) => points[0]?.SCORE || 0,
     elevationScale: 0.5,
-    // @ts-expect-error: 
+    // @ts-expect-error: El tipo 'info' es dinámico y no se puede definir de manera precisa por ahora
     onClick: (info: any): boolean => { 
       if (info && info.object) {
         const cell = info.object;
