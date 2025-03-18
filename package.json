@@ -12,6 +12,8 @@
     "@deck.gl/aggregation-layers": "^9.1.2",
     "@deck.gl/layers": "^9.1.2",
     "@deck.gl/react": "^9.1.2",
+    "@headlessui/react": "^2.2.0",
+    "@heroicons/react": "^2.2.0",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "@types/react-map-gl": "^6.1.7",

@@ -1,4 +1,4 @@
-// app/api/hex-data/route.ts
+// app/api/quality_points/route.ts
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
@@ -20,13 +20,12 @@ export async function GET() {
       );
     }
 
-    // 2. Para cada punto, si tiene best_quality, buscamos la quality correspondiente;
-    //    si no, asignamos 0.
+    // 2. Para cada punto, si tiene best_quality, buscamos la quality correspondiente
     const formattedData = [];
 
     for (const point of geoPoints) {
-      // Filtramos nulos en lat/lon
       if (!point.latitude || !point.longitude) {
+        // Saltamos los que no tengan coords
         continue;
       }
 
@@ -51,16 +50,16 @@ export async function GET() {
         }
       }
 
-      // Construimos la estructura necesaria para tu capa HexagonLayer, etc.
+    
       formattedData.push({
         COORDINATES: [point.longitude, point.latitude],
         SCORE: score,
+        ID: point.id, 
       });
     }
 
     // 3. Respuesta final
     return NextResponse.json(formattedData, { status: 200 });
-
   } catch (err) {
     console.error("❌ Error interno del servidor:", err);
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });

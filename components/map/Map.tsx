@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState} from "react";
+import React, { useState } from "react";
 import mapboxgl from "mapbox-gl";
 import DeckGL from "@deck.gl/react";
 import { HexagonLayer } from "@deck.gl/aggregation-layers";
 import Map, { ViewState } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
-console.log("🔍 MAPBOX TOKEN:", process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
+// Aseguramos que el token sea un string
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const API_URL = "/api/quality_points";
 
-const MapboxMap = () => {
-  const initialViewState = {
+const MapboxMap: React.FC = () => {
+  const initialViewState: ViewState = {
     longitude: -4.78,
     latitude: 37.88,
     zoom: 12,
@@ -23,52 +24,111 @@ const MapboxMap = () => {
   };
 
   const [viewState, setViewState] = useState<ViewState>(initialViewState);
+  const [selectedMeasurements, setSelectedMeasurements] = useState<any[] | null>(null);
+  const [clickedPointIds, setClickedPointIds] = useState<number[] | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // ✅ Capa de hexágonos con colores en función de SCORE
-  const hexagonLayer = new HexagonLayer({
+  // Función para obtener las mediciones completas de un punto
+  async function fetchPointMeasurements(pointId: number): Promise<any[] | null> {
+    try {
+      const response = await fetch(`${API_URL}/${pointId}`);
+      if (!response.ok) {
+        setErrorMessage("Hubo un error al obtener mediciones");
+        return null;
+      }
+      const data = await response.json();
+
+      if (data.message) {
+        setErrorMessage(data.message);
+        return null;
+      }
+
+      if (!data || data.length === 0) {
+        setErrorMessage("Este punto no recibió conexión de ningún gateway");
+        return null;
+      }
+
+      setErrorMessage(null);
+      return data;
+    } catch (error) {
+      setErrorMessage("Hubo un error al cargar las mediciones");
+      return null;
+    }
+  }
+
+  // Función para formatear la fecha y sumar 1 hora
+  const formatDate = (isoDate: string): string => {
+    const date = new Date(isoDate);
+    date.setHours(date.getHours() + 1);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${day}-${month}-${year} -- ${hours}:${minutes}:${seconds}`;
+  };
+
+  const hexagonLayer = new HexagonLayer<any>({
     id: "hexagon-layer",
-    data: API_URL, // Mantenemos la URL como en tu código original
+    data: API_URL,
     getPosition: (d) => d.COORDINATES,
     extruded: true,
-    radius: 15, // Ajustamos el tamaño
+    radius: 15,
     pickable: true,
-
-    // ✅ Usamos getColorValue para definir el color según SCORE
-    getColorValue: (points) => {
-      if (points.length === 0) return 0;
-      return points[0].SCORE;
-    },
-
-    // ✅ Configuración correcta con quantize
+    getColorValue: (points) => points[0]?.SCORE || 0,
     colorScaleType: "quantize",
-    colorDomain: [0, 100], // Se permite SOLO dos valores (min y max)
+    colorDomain: [0, 100],
     colorRange: [
-      [255, 0, 0],    // Rojo para valores más bajos (≤ 25)
-      [255, 165, 0],  // Naranja para valores intermedios (25 - 75)
-      [0, 255, 0],    // Verde para valores más altos (≥ 75)
+      [255, 0, 0],
+      [255, 165, 0],
+      [0, 255, 0],
     ],
-
-    // ✅ Elevación según SCORE
-    getElevationValue: (points) => {
-      if (points.length === 0) return 0;
-      return points[0].SCORE;
-    },
+    getElevationValue: (points) => points[0]?.SCORE || 0,
     elevationScale: 0.5,
+    onClick: (info: any, event: any): boolean => {
+      if (info && info.object) {
+        const cell = info.object as { points: any[] };
+        const pointIds = cell.points.map((pt) => pt.ID).filter(Boolean);
+
+        if (pointIds.length > 0) {
+          fetchPointMeasurements(pointIds[0])
+            .then((measurements) => {
+              if (measurements) {
+                setSelectedMeasurements(measurements);
+                setClickedPointIds(pointIds);
+              } else {
+                setErrorMessage("Este punto no recibió conexión de ningún gateway");
+                setSelectedMeasurements(null);
+                setClickedPointIds(null);
+              }
+            })
+            .catch(() => {
+              setErrorMessage("Hubo un error al obtener mediciones");
+              setSelectedMeasurements(null);
+              setClickedPointIds(null);
+            });
+        } else {
+          setSelectedMeasurements(null);
+          setClickedPointIds(null);
+          setErrorMessage("Este punto no recibió conexión de ningún gateway");
+        }
+      }
+      return true;
+    },
   });
 
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
-      {/* Mapa de fondo */}
       <Map
         {...viewState}
         initialViewState={initialViewState}
         onMove={(evt) => setViewState(evt.viewState)}
-        mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
+        mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/petherem/cl2hdvc6r003114n2jgmmdr24"
-        style={{ width: "100%", height: "100%", position: "relative", zIndex: 0}}
+        style={{ width: "100%", height: "100%", position: "relative", zIndex: 0 }}
       />
 
-      {/* Capa de hexágonos sincronizada con Mapbox */}
       <DeckGL
         viewState={viewState}
         onViewStateChange={(evt) => setViewState(evt.viewState as ViewState)}
@@ -76,6 +136,67 @@ const MapboxMap = () => {
         layers={[hexagonLayer]}
         style={{ position: "absolute", width: "100%", height: "100%" }}
       />
+
+      {/* Mensajes de error o información */}
+      {(errorMessage || selectedMeasurements) && (
+        <div
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "20px",
+            background: "rgba(0, 0, 0, 0.7)",
+            color: "white",
+            padding: "10px",
+            borderRadius: "5px",
+            zIndex: 9999,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            width: "300px",
+          }}
+        >
+          <button
+            onClick={() => {
+              setErrorMessage(null);
+              setSelectedMeasurements(null);
+            }}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "white",
+              cursor: "pointer",
+              fontSize: "22px",
+              fontWeight: "bold",
+            }}
+          >
+            ×
+          </button>
+          {errorMessage && <p style={{ margin: 0, flexGrow: 1 }}>{errorMessage}</p>}
+          {selectedMeasurements && !errorMessage && (
+            <div>
+              <h3>Mediciones del punto {clickedPointIds && clickedPointIds[0]}</h3>
+              <strong>Fecha:</strong> {formatDate(selectedMeasurements[0].created_at)} <br />
+              <strong>Conexiones:</strong>
+              <ul>
+                {selectedMeasurements.map((m: any) => (
+                  <li
+                    key={m.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "5px 0",
+                      borderBottom: "1px solid #ccc",
+                    }}
+                  >
+                    <span>→ Gateway ID: {m.gateway_id}</span>
+                    <span>Calidad: {m.quality}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
