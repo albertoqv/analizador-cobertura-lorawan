@@ -1,12 +1,9 @@
-// app/api/quality_points/[pointId]/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { NextRequest } from "next/server";
 
-// Aquí se define correctamente el tipo de los parámetros
-export async function GET(request: NextRequest, { params }: { params: { pointId: string } }) {
+export default async function GET({params}:{params: Promise<{pointId: string}>}) {
+  const { pointId } = await params
   const supabase = await createClient();
-  const { pointId } = params; // Accedemos a params desde context
 
   try {
     // Obtener las mediciones de calidad para un punto
