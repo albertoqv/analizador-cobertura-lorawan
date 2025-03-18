@@ -64,10 +64,10 @@ const MapboxMap: React.FC = () => {
 
       setErrorMessage(null);
       return data;
-    } catch (_error) {
+    } catch {
       setErrorMessage("Hubo un error al cargar las mediciones");
       return null;
-    }
+  }
   }
 
   // Función para formatear la fecha y sumar 1 hora
