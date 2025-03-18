@@ -1,5 +1,5 @@
 "use client";
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import mapboxgl from "mapbox-gl";
 import DeckGL from "@deck.gl/react";
@@ -101,7 +101,6 @@ const MapboxMap: React.FC = () => {
     ],
     getElevationValue: (points) => points[0]?.SCORE || 0,
     elevationScale: 0.5,
-    // @ts-expect-error: El tipo 'info' es dinámico y no se puede definir de manera precisa por ahora
     onClick: (info: any): boolean => { 
       if (info && info.object) {
         const cell = info.object;
