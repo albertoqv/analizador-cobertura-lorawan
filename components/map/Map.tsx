@@ -7,13 +7,11 @@ import { HexagonLayer } from "@deck.gl/aggregation-layers";
 import Map, { ViewState } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-// Aseguramos que el token sea un string
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const API_URL = "/api/quality_points";
 
-// Definimos interfaces para los datos
 interface PointMeasurement {
   id: number;
   gateway_id: string;
@@ -27,6 +25,13 @@ interface PointData {
   SCORE: number;
 }
 
+// Determina color según calidad
+function getQualityColor(quality: number): string {
+  if (quality < 30) return "bg-red-500";
+  if (quality < 70) return "bg-yellow-500";
+  return "bg-green-500";
+}
+
 const MapboxMap: React.FC = () => {
   const initialViewState: ViewState = {
     longitude: -4.78,
@@ -35,55 +40,77 @@ const MapboxMap: React.FC = () => {
     pitch: 40,
     bearing: 0,
     padding: {},
+
+
   };
 
+  // Estados
   const [viewState, setViewState] = useState<ViewState>(initialViewState);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [selectedMeasurements, setSelectedMeasurements] = useState<PointMeasurement[] | null>(null);
   const [clickedPointIds, setClickedPointIds] = useState<number[] | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Función para obtener las mediciones completas de un punto
-  async function fetchPointMeasurements(pointId: number): Promise<PointMeasurement[] | null> {
-    try {
-      const response = await fetch(`${API_URL}/${pointId}`);
-      if (!response.ok) {
-        setErrorMessage("Hubo un error al obtener mediciones");
-        return null;
-      }
-      const data = await response.json();
-
-      if (data.message) {
-        setErrorMessage(data.message);
-        return null;
-      }
-
-      if (!data || data.length === 0) {
-        setErrorMessage("Este punto no recibió conexión de ningún gateway");
-        return null;
-      }
-
-      setErrorMessage(null);
-      return data;
-    } catch {
-      setErrorMessage("Hubo un error al cargar las mediciones");
-      return null;
-  }
-  }
-
-  // Función para formatear la fecha y sumar 1 hora
+  // Formatea fecha
   const formatDate = (isoDate: string): string => {
     const date = new Date(isoDate);
+    // Ajuste horario +1
     date.setHours(date.getHours() + 1);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
     return `${day}-${month}-${year} -- ${hours}:${minutes}:${seconds}`;
   };
 
- 
+  // Fetch con distinción 404 (punto sin conexiones) vs error
+  async function fetchPointMeasurements(pointId: number): Promise<PointMeasurement[] | null> {
+    try {
+      const response = await fetch(`${API_URL}/${pointId}`);
+
+      // CASO A: Servidor responde 404 => punto sin mediciones
+      if (response.status === 404) {
+        setInfoMessage(`El punto ${pointId} no estableció conexión con ningún gateway.`);
+        setErrorMessage(null);
+        setSelectedMeasurements(null);
+        return null;
+      }
+
+      // CASO B: Otro error HTTP
+      if (!response.ok) {
+        setErrorMessage("Hubo un error al obtener mediciones");
+        setInfoMessage(null);
+        setSelectedMeasurements(null);
+        return null;
+      }
+
+      // CASO C: Respuesta 200 => parseamos
+      const data = await response.json();
+      // Por si la API devuelve array vacío en lugar de 404:
+      if (!data || data.length === 0) {
+        setInfoMessage(`El punto ${pointId} no estableció conexión con ningún gateway.`);
+        setErrorMessage(null);
+        setSelectedMeasurements(null);
+        return null;
+      }
+
+      // CASO D: Hay datos
+      setInfoMessage(null);
+      setErrorMessage(null);
+      return data;
+    } catch {
+      // Error de conexión, etc.
+      setErrorMessage("Hubo un error al cargar las mediciones");
+      setInfoMessage(null);
+      setSelectedMeasurements(null);
+      return null;
+    }
+  }
+
+  // Definir la capa de hexágonos
   const hexagonLayer = new HexagonLayer<PointData>({
     id: "hexagon-layer",
     data: API_URL,
@@ -101,32 +128,34 @@ const MapboxMap: React.FC = () => {
     ],
     getElevationValue: (points) => points[0]?.SCORE || 0,
     elevationScale: 0.5,
-    onClick: (info: any): boolean => { 
+    onClick: (info: any): boolean => {
       if (info && info.object) {
         const cell = info.object;
         const pointIds = cell.points.map((pt: PointData) => pt.ID).filter(Boolean);
-        
-        if (pointIds.length > 0)  {
+
+        if (pointIds.length > 0) {
           fetchPointMeasurements(pointIds[0])
             .then((measurements) => {
               if (measurements) {
                 setSelectedMeasurements(measurements);
                 setClickedPointIds(pointIds);
               } else {
-                setErrorMessage("Este punto no recibió conexión de ningún gateway");
-                setSelectedMeasurements(null);
-                setClickedPointIds(null);
+                // Si measurements es null, ya hemos seteado infoMessage o errorMessage
+                setClickedPointIds(pointIds);
               }
             })
             .catch(() => {
               setErrorMessage("Hubo un error al obtener mediciones");
               setSelectedMeasurements(null);
               setClickedPointIds(null);
+              setInfoMessage(null);
             });
         } else {
+          // Sin IDs => punto sin conexiones
+          setInfoMessage(`El punto no estableció conexión con ningún gateway.`);
+          setErrorMessage(null);
           setSelectedMeasurements(null);
           setClickedPointIds(null);
-          setErrorMessage("Este punto no recibió conexión de ningún gateway");
         }
       }
       return true;
@@ -137,11 +166,10 @@ const MapboxMap: React.FC = () => {
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
       <Map
         {...viewState}
-        initialViewState={initialViewState}
         onMove={(evt) => setViewState(evt.viewState)}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/petherem/cl2hdvc6r003114n2jgmmdr24"
-        style={{ width: "100%", height: "100%", position: "relative", zIndex: 0 }}
+        style={{ width: "100%", height: "100%" }}
       />
 
       <DeckGL
@@ -152,63 +180,105 @@ const MapboxMap: React.FC = () => {
         style={{ position: "absolute", width: "100%", height: "100%" }}
       />
 
-      {/* Mensajes de error o información */}
-      {(errorMessage || selectedMeasurements) && (
+      {/* POPUP para error / info / mediciones */}
+      {(errorMessage || infoMessage || selectedMeasurements) && (
         <div
-          style={{
-            position: "absolute",
-            top: "10px",
-            right: "20px",
-            background: "rgba(0, 0, 0, 0.7)",
-            color: "white",
-            padding: "10px",
-            borderRadius: "5px",
-            zIndex: 9999,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: "300px",
-          }}
+          className="
+            absolute
+            top-2 right-4
+            w-80
+            bg-black/70
+            text-white
+            p-3
+            rounded-lg
+            shadow-lg
+            z-50
+            backdrop-blur-sm
+          "
         >
-          <button
-            onClick={() => {
-              setErrorMessage(null);
-              setSelectedMeasurements(null);
-            }}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "white",
-              cursor: "pointer",
-              fontSize: "22px",
-              fontWeight: "bold",
-            }}
-          >
-            ×
-          </button>
-          {errorMessage && <p style={{ margin: 0, flexGrow: 1 }}>{errorMessage}</p>}
-          {selectedMeasurements && !errorMessage && (
-            <div>
-              <h3>Mediciones del punto {clickedPointIds && clickedPointIds[0]}</h3>
-              <strong>Fecha:</strong> {formatDate(selectedMeasurements[0].created_at)} <br />
-              <strong>Conexiones:</strong>
-              <ul>
-                {selectedMeasurements.map((m: PointMeasurement) => (
-                  <li
-                    key={m.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "5px 0",
-                      borderBottom: "1px solid #ccc",
-                    }}
-                  >
-                    <span>→ Gateway ID: {m.gateway_id}</span>
-                    <span>Calidad: {m.quality}</span>
-                  </li>
-                ))}
+          {/* Si es un error real */}
+          {errorMessage && (
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-sm">Error</h3>
+                <button
+                  onClick={() => {
+                    setErrorMessage(null);
+                    setInfoMessage(null);
+                    setSelectedMeasurements(null);
+                  }}
+                  className="text-lg font-bold hover:text-gray-300"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="text-sm">{errorMessage}</p>
+            </>
+          )}
+
+          {/* Si es un mensaje informativo (punto sin conexiones) */}
+          {infoMessage && !errorMessage && (
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-sm">Información</h3>
+                <button
+                  onClick={() => {
+                    setInfoMessage(null);
+                    setErrorMessage(null);
+                    setSelectedMeasurements(null);
+                  }}
+                  className="text-lg font-bold hover:text-gray-300"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="text-sm">{infoMessage}</p>
+            </>
+          )}
+
+          {/* Si hay mediciones */}
+          {selectedMeasurements && !errorMessage && !infoMessage && (
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base font-semibold leading-tight">
+                  Mediciones del punto {clickedPointIds && clickedPointIds[0]}
+                </h3>
+                <button
+                  onClick={() => {
+                    setSelectedMeasurements(null);
+                    setErrorMessage(null);
+                    setInfoMessage(null);
+                  }}
+                  className="text-lg font-bold hover:text-gray-300"
+                >
+                  ×
+                </button>
+              </div>
+
+              <p className="text-xs mb-2">
+                <strong>Fecha:</strong> {formatDate(selectedMeasurements[0].created_at)}
+              </p>
+              <p className="text-xs font-medium">Conexiones:</p>
+              <ul className="space-y-2 mt-2">
+                {selectedMeasurements.map((m) => {
+                  const barColor = getQualityColor(m.quality);
+                  return (
+                    <li key={m.id} className="border-b border-gray-600 pb-1">
+                      <div className="flex justify-between text-xs">
+                        <span>Gateway: {m.gateway_id}</span>
+                        <span>Calidad: {m.quality}%</span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded h-2 mt-1 overflow-hidden">
+                        <div
+                          className={`${barColor} h-2 transition-all duration-300`}
+                          style={{ width: `${m.quality}%` }}
+                        />
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
-            </div>
+            </>
           )}
         </div>
       )}
