@@ -241,7 +241,7 @@ const MapboxMap: React.FC = () => {
             <>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-base font-semibold leading-tight">
-                  Mediciones del punto {clickedPointIds && clickedPointIds[0]}
+                  Conexiones del punto {clickedPointIds && clickedPointIds[0]}
                 </h3>
                 <button
                   onClick={() => {
@@ -258,14 +258,14 @@ const MapboxMap: React.FC = () => {
               <p className="text-xs mb-2">
                 <strong>Fecha:</strong> {formatDate(selectedMeasurements[0].created_at)}
               </p>
-              <p className="text-xs font-medium">Conexiones:</p>
+              <p className="text-xs font-medium">Gateways:</p>
               <ul className="space-y-2 mt-2">
                 {selectedMeasurements.map((m) => {
                   const barColor = getQualityColor(m.quality);
                   return (
                     <li key={m.id} className="border-b border-gray-600 pb-1">
                       <div className="flex justify-between text-xs">
-                        <span>Gateway: {m.gateway_id}</span>
+                        <span>Id: {m.gateway_id}</span>
                         <span>Calidad: {m.quality}%</span>
                       </div>
                       <div className="w-full bg-gray-700 rounded h-2 mt-1 overflow-hidden">
