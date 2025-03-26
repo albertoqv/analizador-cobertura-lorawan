@@ -10,7 +10,7 @@ export async function GET() {
     // 1. Obtener todos los puntos con su best_quality
     const { data: geoPoints, error: geoError } = await supabase
       .from("geo_points")
-      .select("id, latitude, longitude, best_quality");
+      .select("id, latitude, longitude, created_at, best_quality");
 
     if (geoError) {
       console.error("❌ Error obteniendo geo_points:", geoError);
@@ -54,7 +54,9 @@ export async function GET() {
       formattedData.push({
         COORDINATES: [point.longitude, point.latitude],
         SCORE: score,
-        ID: point.id, 
+        ID: point.id,
+        DATE:point.created_at, 
+        
       });
     }
 

@@ -23,12 +23,13 @@ interface PointData {
   ID: number;
   COORDINATES: [number, number];
   SCORE: number;
+  DATE?: string | null;
 }
 
 // Determina color según calidad
 function getQualityColor(quality: number): string {
   if (quality < 30) return "bg-red-500";
-  if (quality < 70) return "bg-yellow-500";
+  if (quality < 60) return "bg-yellow-500";
   return "bg-green-500";
 }
 
@@ -67,13 +68,14 @@ const MapboxMap: React.FC = () => {
   };
 
   // Fetch con distinción 404 (punto sin conexiones) vs error
-  async function fetchPointMeasurements(pointId: number): Promise<PointMeasurement[] | null> {
+  async function fetchPointMeasurements(pointId: number, pointDate: string | null ): Promise<PointMeasurement[] | null> {
     try {
       const response = await fetch(`${API_URL}/${pointId}`);
 
       // CASO A: Servidor responde 404 => punto sin mediciones
       if (response.status === 404) {
-        setInfoMessage(`El punto ${pointId} no estableció conexión con ningún gateway.`);
+        const fecha = pointDate ? formatDate(pointDate) : "desconocida";
+        setInfoMessage(`El punto ${pointId} tomado en fecha: ${fecha} no estableció conexión con ningún gateway.`);
         setErrorMessage(null);
         setSelectedMeasurements(null);
         return null;
@@ -91,7 +93,8 @@ const MapboxMap: React.FC = () => {
       const data = await response.json();
       // Por si la API devuelve array vacío en lugar de 404:
       if (!data || data.length === 0) {
-        setInfoMessage(`El punto ${pointId} no estableció conexión con ningún gateway.`);
+        const fecha = pointDate ? formatDate(pointDate) : "desconocida";
+        setInfoMessage(`El punto ${pointId} tomado en fecha: ${fecha} no estableció conexión con ningún gateway.`);
         setErrorMessage(null);
         setSelectedMeasurements(null);
         return null;
@@ -132,9 +135,9 @@ const MapboxMap: React.FC = () => {
       if (info && info.object) {
         const cell = info.object;
         const pointIds = cell.points.map((pt: PointData) => pt.ID).filter(Boolean);
-
+        const dates = cell.points.map((pt: PointData) => pt.DATE ?? null);
         if (pointIds.length > 0) {
-          fetchPointMeasurements(pointIds[0])
+          fetchPointMeasurements(pointIds[0],dates[0])
             .then((measurements) => {
               if (measurements) {
                 setSelectedMeasurements(measurements);
@@ -256,7 +259,14 @@ const MapboxMap: React.FC = () => {
               </div>
 
               <p className="text-xs mb-2">
-                <strong>Fecha:</strong> {formatDate(selectedMeasurements[0].created_at)}
+              <strong>Fecha :</strong>{" "}
+  {clickedPointIds && clickedPointIds.length > 0
+    ? formatDate(
+        (hexagonLayer.props.data as PointData[])
+          .find((pt) => pt.ID === clickedPointIds[0])?.DATE || selectedMeasurements[0].created_at
+      )
+    : formatDate(selectedMeasurements[0].created_at)}
+
               </p>
               <p className="text-xs font-medium">Gateways:</p>
               <ul className="space-y-2 mt-2">
