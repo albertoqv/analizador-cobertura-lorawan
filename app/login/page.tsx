@@ -10,7 +10,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   const handleLogin = () => {
-    if (password === process.env.APP_SECRET_PASSWORD) {
+    if (password === "Xx9$gT!7mP@vQ3zK#f") {
       sessionStorage.setItem("password", password);
       router.push("/");
     } else {
