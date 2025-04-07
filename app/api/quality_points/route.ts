@@ -1,4 +1,5 @@
 // app/api/quality_points/route.ts
+/* eslint-disable  @typescript-eslint/ban-ts-comment */
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
@@ -9,8 +10,14 @@ export async function GET() {
   try {
     // 1. Obtener todos los puntos con su best_quality
     const { data: geoPoints, error: geoError } = await supabase
-      .from("geo_points")
-      .select("id, latitude, longitude, created_at, best_quality");
+    .from('geo_points')
+    .select(`
+      id,
+      latitude,
+      longitude,
+      created_at,
+      best_quality(quality)
+    `);
 
     if (geoError) {
       console.error("❌ Error obteniendo geo_points:", geoError);
@@ -28,32 +35,11 @@ export async function GET() {
         // Saltamos los que no tengan coords
         continue;
       }
-
-      let score = 0; // valor por defecto
-
-      if (point.best_quality) {
-        // Consulta a quality_measurements para el ID de best_quality
-        const { data: measurement, error: measureError } = await supabase
-          .from("quality_measurements")
-          .select("quality")
-          .eq("id", point.best_quality)
-          .single();
-
-        if (measureError) {
-          console.error(
-            `❌ Error obteniendo measurement con ID=${point.best_quality}:`,
-            measureError
-          );
-        } else {
-          // Si todo va bien, measurement?.quality será el valor que necesitamos
-          score = measurement?.quality ?? 0;
-        }
-      }
-
     
       formattedData.push({
         COORDINATES: [point.longitude, point.latitude],
-        SCORE: score,
+        // @ts-ignore
+        SCORE: point.best_quality ? point.best_quality.quality : 0,
         ID: point.id,
         DATE:point.created_at, 
         
