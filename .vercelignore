@@ -1,0 +1,5 @@
+# Ignorar la carpeta de código Arduino
+modulo1/
+
+# Ignorar archivos específicos d
+*.ino
