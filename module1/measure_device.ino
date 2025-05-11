@@ -2,7 +2,7 @@
 * Trabajo Fin de Grado: Analizador de cobertura LoRaWAN
 * Alberto Quesada Valle
 * 
-* dispositivo_medicion
+* measure_device.ino
 * 
 * RESUMEN DEL FUNCIONAMIENTO
 *     1) Al iniciar: configura GPS, conecta a LoRaWAN y queda en espera (LED verde)
