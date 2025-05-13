@@ -20,12 +20,7 @@ export default function LoginPage() {
   };
 
   return (
-    /* 
-      1) He quitado 'overflow-hidden' y lo he cambiado a 'overflow-x-hidden'
-         para que no haya scroll horizontal, pero sí scroll vertical 
-         si la pantalla es más pequeña que el contenido.
-      2) Sustituyo el margin-top negativo en el título por un spacing normal.
-    */
+    
     <div className="
       relative flex flex-col items-center justify-center 
       min-h-screen w-full 

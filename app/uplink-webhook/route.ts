@@ -1,49 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
-const appId = "tfg-analizador";
-const deviceId = "tfg-analizador-alberto";
-
-async function scheduleDownlink(payloadStr: string) {
-  try {
-    console.log("📤 Intentando programar downlink...");
-    const payloadB64 = Buffer.from(payloadStr, 'utf8').toString('base64');
-    const downlinkBody = {
-      downlinks: [
-        {
-          f_port: 3,
-          frm_payload: payloadB64,
-          priority: "NORMAL"
-        }
-      ]
-    };
-    const url = `https://eu1.cloud.thethings.network/api/v3/as/applications/${appId}/devices/${deviceId}/down/push`;
-    const TTN_API_KEY = process.env.TTN_API_KEY;
-    if (!TTN_API_KEY) {
-      console.error("❌ Falta la variable de entorno TTN_API_KEY");
-      return;
-    }
-    console.log("🔑 TTN API Key detectada.");
-    console.log("📝 Payload que se enviará:", JSON.stringify(downlinkBody, null, 2));
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${TTN_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(downlinkBody)
-    });
-    if (!resp.ok) {
-      const errText = await resp.text();
-      console.error('❌ Error al programar downlink en TTN:', resp.status, errText);
-    } else {
-      console.log('✅ Downlink programado en TTN con payload:', payloadStr);
-    }
-  } catch (error) {
-    console.error("❌ Error en `scheduleDownlink`:", error);
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const bodyStr = await request.text();
@@ -132,8 +89,6 @@ export async function POST(request: Request) {
     // 5) Si no quedan gateways válidos, no insertamos mediciones
     if (filteredMetadata.length === 0) {
       console.log("ℹ️ Solo se recibió el gateway 'enlace-alberto'. No se insertan mediciones, best_quality se mantiene en null.");
-      const downlinkMsg = `Medida en ${payload.lat}, ${payload.lon} con calidad 0% recibida correctamente`;
-      await scheduleDownlink(downlinkMsg);
       return NextResponse.json(
         {
           success: true,
@@ -210,10 +165,6 @@ export async function POST(request: Request) {
     }
 
     console.log("✅ Punto y mediciones creados con un nuevo ID, best_quality actualizado.");
-
-    // 10) Downlink
-    const downlinkMsg = `Medida en ${payload.lat}, ${payload.lon} con calidad del ${bestMeasurement.quality}% recibida correctamente`;
-    await scheduleDownlink(downlinkMsg);
 
     // Respuesta final
     return NextResponse.json(
