@@ -31,9 +31,9 @@
 #define loraSerial  Serial2
 
 #define BUTTON_PIN      5
-#define LED_AMARILLO    6
-#define LED_VERDE       7
-#define LED_ROJO        8
+#define YELLOW_LED    6
+#define GREEN_LED       7
+#define RED_LED        8
 
 // Objeto módem LoRa
 _lora_band region = EU868;   
@@ -81,9 +81,9 @@ void setup() {
   gpsSerial.begin(9600);
   
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  pinMode(LED_AMARILLO, OUTPUT);
-  pinMode(LED_VERDE,    OUTPUT);
-  pinMode(LED_ROJO,     OUTPUT);
+  pinMode(YELLOW_LED, OUTPUT);
+  pinMode(GREEN_LED,    OUTPUT);
+  pinMode(RED_LED,     OUTPUT);
 
   // Al inicio: LED Amarillo encendido (estado de SETUP)
   // LED Verde y LED Rojo apagados
@@ -269,42 +269,42 @@ void displayGpsInfo() {
 // --------------------------------------------------------------
 void setLedsSetup() {
   currentState = STATE_SETUP;
-  digitalWrite(LED_AMARILLO, HIGH);  // Amarillo encendido (configurando)
-  digitalWrite(LED_VERDE,    LOW);
-  digitalWrite(LED_ROJO,     LOW);
+  digitalWrite(YELLOW_LED, HIGH);  // Amarillo encendido (configurando)
+  digitalWrite(GREEN_LED,    LOW);
+  digitalWrite(RED_LED,     LOW);
 }
 
 void setLedsReady() {
   currentState = STATE_READY;
-  digitalWrite(LED_AMARILLO, LOW);
-  digitalWrite(LED_VERDE,    HIGH);  // Verde encendido (listo)
-  digitalWrite(LED_ROJO,     LOW);
+  digitalWrite(YELLOW_LED, LOW);
+  digitalWrite(GREEN_LED,    HIGH);  // Verde encendido (listo)
+  digitalWrite(RED_LED,     LOW);
 }
 
 void setLedsProcessing() {
   currentState = STATE_PROCESSING;
-  digitalWrite(LED_AMARILLO, HIGH);  // Amarillo encendido (procesando)
-  digitalWrite(LED_VERDE,    LOW);
-  digitalWrite(LED_ROJO,     LOW);
+  digitalWrite(YELLOW_LED, HIGH);  // Amarillo encendido (procesando)
+  digitalWrite(GREEN_LED,    LOW);
+  digitalWrite(RED_LED,     LOW);
 }
 
 // --------------------------------------------------------------
-// showError(): enciende LED_ROJO unos segundos y restaura estado
+// showError(): enciende RED_LED unos segundos y restaura estado
 // --------------------------------------------------------------
 void showError() {
   // Guardamos el estado actual para restaurarlo después
   LedState oldState = currentState;
 
   // Apagamos Amarillo y Verde, encendemos Rojo
-  digitalWrite(LED_AMARILLO, LOW);
-  digitalWrite(LED_VERDE,    LOW);
-  digitalWrite(LED_ROJO,     HIGH);
+  digitalWrite(YELLOW_LED, LOW);
+  digitalWrite(GREEN_LED,    LOW);
+  digitalWrite(RED_LED,     HIGH);
 
   // Espera 5 segundos 
   delay(5000);
 
   // Apagamos LED Rojo
-  digitalWrite(LED_ROJO, LOW);
+  digitalWrite(RED_LED, LOW);
 
   // Restaurar el estado anterior
   switch (oldState) {
