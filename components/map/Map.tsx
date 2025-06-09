@@ -29,7 +29,7 @@ interface PointData {
 // Determina color según calidad
 function getQualityColor(quality: number): string {
   if (quality < 30) return "bg-red-500";
-  if (quality < 60) return "bg-yellow-500";
+  if (quality < 70) return "bg-yellow-500";
   return "bg-green-500";
 }
 
