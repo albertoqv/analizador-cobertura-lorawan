@@ -119,7 +119,7 @@ const MapboxMap: React.FC = () => {
     data: API_URL,
     getPosition: (d) => d.COORDINATES,
     extruded: true,
-    radius: 7,
+    radius: 5,
     pickable: true,
     getColorValue: (points) => points[0]?.SCORE || 0,
     colorScaleType: "quantize",
