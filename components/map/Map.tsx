@@ -36,7 +36,7 @@ function getQualityColor(quality: number): string {
 const MapboxMap: React.FC = () => {
   const initialViewState: ViewState = {
     longitude: -4.78,
-    latitude: 37.88,
+    latitude: 37.87,
     zoom: 12,
     pitch: 40,
     bearing: 0,
