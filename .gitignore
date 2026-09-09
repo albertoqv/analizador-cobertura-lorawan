@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# credenciales de TTN (nunca subir el archivo real)
+module1/arduino_secrets.h
