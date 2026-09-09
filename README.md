@@ -5,12 +5,12 @@ Dirigido por Miguel Ángel Montijano Vizcaíno y Ezequiel Herruzo Gómez, en la 
 
 Medir la cobertura real de una red LoRaWAN sobre el terreno es caro y lento con las soluciones comerciales existentes. Este proyecto propone una alternativa propia, de bajo coste, capaz de generar mapas de cobertura completos incluso en zonas donde todavía no hay cobertura desplegada.
 
-![C++](https://img.shields.io/badge/-C%2B%2B-00599C?style=flat-square&logo=cplusplus&logoColor=white)
-![Arduino](https://img.shields.io/badge/-Arduino-00979D?style=flat-square&logo=arduino&logoColor=white)
-![Next.js](https://img.shields.io/badge/-Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white)
-![Mapbox](https://img.shields.io/badge/-Mapbox-000000?style=flat-square&logo=mapbox&logoColor=white)
-![Supabase](https://img.shields.io/badge/-Supabase-3FCF8E?style=flat-square&logo=supabase&logoColor=white)
-![LoRaWAN](https://img.shields.io/badge/-LoRaWAN-2C3E50?style=flat-square)
+![C++](https://img.shields.io/badge/-C%2B%2B-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
+![Arduino](https://img.shields.io/badge/-Arduino-00979D?style=for-the-badge&logo=arduino&logoColor=white)
+![Next.js](https://img.shields.io/badge/-Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
+![Mapbox](https://img.shields.io/badge/-Mapbox-000000?style=for-the-badge&logo=mapbox&logoColor=white)
+![Supabase](https://img.shields.io/badge/-Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![LoRaWAN](https://img.shields.io/badge/-LoRaWAN-2C3E50?style=for-the-badge)
 
 <p align="center">
   <img src="docs/dispositivo.jpg" alt="Dispositivo de medición: PCB, batería y gateway de soporte" width="600">
